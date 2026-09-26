@@ -1,0 +1,7 @@
+/work/
+/dev-imports/
+/dist/
+__pycache__/
+*.pyc
+*.qmlc
+*.jsc

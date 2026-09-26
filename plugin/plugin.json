@@ -1,0 +1,25 @@
+{
+  "id": "keyboardLayoutSearch",
+  "name": "DMS Keyboard Layout Search",
+  "description": "Find applications across keyboard layouts using the system XKB keymap.",
+  "version": "1.0.0",
+  "author": "korbash",
+  "type": "daemon",
+  "icon": "keyboard",
+  "component": "./LayoutSearchDaemon.qml",
+  "capabilities": [
+    "daemon"
+  ],
+  "permissions": [
+    "settings_read",
+    "settings_write",
+    "process"
+  ],
+  "requires_dms": ">=1.6.2",
+  "license": "MIT",
+  "settings": "./Settings.qml",
+  "dependencies": [
+    "python3",
+    "xkbcli"
+  ]
+}
