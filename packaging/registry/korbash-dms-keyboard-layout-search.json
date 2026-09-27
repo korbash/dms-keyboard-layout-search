@@ -8,16 +8,18 @@
   "repo": "https://github.com/korbash/dms-keyboard-layout-search",
   "path": "plugin",
   "author": "korbash",
-  "description": "Find applications across keyboard layouts using the system XKB keymap.",
+  "description": "Find apps even when you type their names in another keyboard layout.",
   "dependencies": [
     "python3",
+    "libxkbcommon",
+    "xkeyboard-config",
     "xkbcli"
   ],
   "compositors": [
     "niri"
   ],
   "distro": [
-    "any"
+    "arch"
   ],
   "screenshot": "https://raw.githubusercontent.com/korbash/dms-keyboard-layout-search/main/assets/keyboard-layout-search.png",
   "requires_dms": ">=1.6.2"

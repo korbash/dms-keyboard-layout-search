@@ -1,7 +1,7 @@
 {
   "id": "keyboardLayoutSearch",
   "name": "DMS Keyboard Layout Search",
-  "description": "Find applications across keyboard layouts using the system XKB keymap.",
+  "description": "Find apps even when you type their names in another keyboard layout.",
   "version": "1.0.0",
   "author": "korbash",
   "type": "daemon",
@@ -20,6 +20,8 @@
   "settings": "./Settings.qml",
   "dependencies": [
     "python3",
+    "libxkbcommon",
+    "xkeyboard-config",
     "xkbcli"
   ]
 }

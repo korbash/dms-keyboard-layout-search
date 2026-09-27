@@ -1,7 +1,9 @@
 # Compatibility and verification
 
 Tested locally on 26 September 2026 with DMS 1.6.2, Quickshell 0.3.1,
-libxkbcommon 1.13.2 and xkeyboard-config 2.48, on Niri.
+libxkbcommon 1.13.2 and xkeyboard-config 2.48, on Niri and EndeavourOS
+(Arch-based). The initial registry entry lists `niri` and the `arch` family;
+other compositor/distribution combinations have not been verified.
 
 ## XKB database coverage
 

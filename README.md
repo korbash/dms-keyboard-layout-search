@@ -42,7 +42,8 @@ persistent helper process; Python runs briefly when loading layouts.
 
 ## Requirements
 
-- DMS **1.6.2 or newer**; runtime tested on 1.6.2 with Niri.
+- DMS **1.6.2 or newer**; runtime tested on 1.6.2 with Niri on EndeavourOS
+  (Arch-based).
 - Python **3.9+**, `libxkbcommon`, and an XKB data package (`xkeyboard-config`
   or `xkb-data`). The helper uses Python's standard library; no pip packages.
 - `xkbcli dump-keymap-wayland` for automatic detection. Manual layout selection
@@ -50,7 +51,9 @@ persistent helper process; Python runs briefly when loading layouts.
 
 On Arch, the relevant packages are `python`, `libxkbcommon`, and
 `xkeyboard-config`. Debian/Ubuntu package names include `python3`,
-`libxkbcommon0`, `libxkbcommon-tools`, and `xkb-data`.
+`libxkbcommon0`, `libxkbcommon-tools`, and `xkb-data`; these are package-name
+equivalents, not a claim of runtime testing on Debian/Ubuntu. The initial
+registry entry declares the tested Arch family.
 
 The index integration is compositor-independent. Only **Niri has been tested
 in a live desktop session**; other Wayland compositors should be verified
