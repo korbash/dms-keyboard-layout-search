@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 — Unreleased
+## 1.0.0 — 2026-09-27
 
 - Find applications using keys from another configured XKB layout.
 - Detect the actual Wayland keymap, or select XKB layouts and variants manually.

@@ -11,8 +11,9 @@ in the application launcher and Niri overview, with no trigger prefix. Normal
 search, original app names, launch commands, hidden-app filtering and usage
 history stay in use.
 
-**Publication status:** prepared locally; not yet published to GitHub or the
-DMS registry. Repository and registry URLs in `packaging/` are planned targets.
+**Source and releases:** [GitHub](https://github.com/korbash/dms-keyboard-layout-search) ·
+[Releases](https://github.com/korbash/dms-keyboard-layout-search/releases).
+The DMS registry submission is pending review; local installation is available below.
 
 ## Layouts
 

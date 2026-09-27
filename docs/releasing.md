@@ -1,8 +1,8 @@
-# Publishing 1.0.0
+# Release and registry maintenance
 
-The project is prepared locally. No repository, push, release or registry PR
-has been created. These are the remaining external steps, to perform only when
-publication is requested.
+The source repository is `korbash/dms-keyboard-layout-search` on GitHub, using
+`main`. The first release is `v1.0.0`. The instructions below describe the
+publication process and metadata to retain for future releases.
 
 The submission follows the registry's
 [contribution rules](https://github.com/AvengeMedia/dms-plugin-registry/blob/master/CONTRIBUTING.md)
@@ -40,13 +40,12 @@ The prepared PR text includes the required disclosure of substantial AI assistan
 2. Update the README publication status and date the changelog. Review the
    license and commit these release changes locally. Run `make package` and
    review the archive.
-3. Create `korbash/dms-keyboard-layout-search` on GitHub, using `main`, then push
-   the reviewed commits. These URLs are assumptions until the repository
-   exists; update the README/registry if the name changes. Tag `v1.0.0` and
-   attach the archive to a release if desired.
+3. Push the reviewed commits to `korbash/dms-keyboard-layout-search`, branch
+   `main`. Tag the version and attach the reviewed archive to its GitHub release.
+   Repository creation is only needed for the initial publication.
 4. Verify the repository, `plugin/plugin.json`, and
    `assets/keyboard-layout-search.png` are reachable at the URLs in the registry
-   entry. Network link validation cannot pass before publication.
+   entry. Run network link validation after the release commit is public.
 5. In a fork of `AvengeMedia/dms-plugin-registry`, copy
    `packaging/registry/korbash-dms-keyboard-layout-search.json` to `plugins/`.
    Install its validation dependencies (`jinja2` and `requests` in a virtual
