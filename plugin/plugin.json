@@ -1,14 +1,14 @@
 {
   "id": "keyboardLayoutSearch",
   "name": "DMS Keyboard Layout Search",
-  "description": "Find apps even when you type their names in another keyboard layout.",
-  "version": "1.0.0",
+  "description": "Search apps, settings and launcher sources across keyboard layouts.",
+  "version": "1.1.0",
   "author": "korbash",
-  "type": "daemon",
+  "type": "composite",
   "icon": "keyboard",
-  "component": "./LayoutSearchDaemon.qml",
   "capabilities": [
-    "daemon"
+    "daemon",
+    "launcher"
   ],
   "permissions": [
     "settings_read",
@@ -23,5 +23,10 @@
     "libxkbcommon",
     "xkeyboard-config",
     "xkbcli"
-  ]
+  ],
+  "components": {
+    "daemon": "./LayoutSearchDaemon.qml",
+    "launcher": "./LayoutSearchLauncher.qml"
+  },
+  "trigger": ""
 }

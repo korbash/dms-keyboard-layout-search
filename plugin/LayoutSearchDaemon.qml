@@ -1,7 +1,5 @@
 import QtQuick
 import Quickshell.Io
-import qs.Common
-import qs.Services
 import "LayoutMaps.js" as Aliases
 
 Item {
@@ -9,48 +7,20 @@ Item {
 
     property var pluginService: null
     property string pluginId: "keyboardLayoutSearch"
-    property bool updating: false
     property bool stopping: false
     property bool pendingReload: false
     property bool receivedPayload: false
-    property int indexedApps: 0
+    property string requestedLayouts: ""
+    property bool initialized: false
     property var mappings: []
     property var layoutNames: []
     property string keymapSource: ""
     property string lastError: ""
     readonly property bool loading: keymapProcess.running
+    signal layoutsChanged()
 
-    function originalApp(app) {
-        return app._keyboardLayoutSearchOriginal || app;
-    }
-
-    function invalidate() {
-        AppSearchService._cachedVisibleApps = null;
-        AppSearchService._cachedCategories = null;
-        AppSearchService.invalidateLauncherCache();
-    }
-
-    function refresh() {
-        if (updating || stopping)
-            return;
-        updating = true;
-        try {
-            const apps = AppSearchService.applications.map(function (entry) {
-                const app = originalApp(entry);
-                if (root.mappings.length === 0)
-                    return app;
-                const override = SessionData.getAppOverride(app.id || app.execString || app.exec || "");
-                return Object.assign({}, app, {
-                    keywords: Aliases.keywordsFor(app, override ? override.name : "", root.mappings),
-                    _keyboardLayoutSearchOriginal: app
-                });
-            });
-            AppSearchService.applications = apps;
-            indexedApps = apps.length;
-            invalidate();
-        } finally {
-            updating = false;
-        }
+    function queryVariants(query) {
+        return Aliases.queryVariants(query, mappings);
     }
 
     function reloadLayouts() {
@@ -60,13 +30,10 @@ Item {
             pendingReload = true;
             return;
         }
-        if (typeof AppSearchService.invalidateLauncherCache !== "function") {
-            lastError = "This DMS version does not expose the required application search API";
-            return;
-        }
         receivedPayload = false;
         lastError = "";
         const layouts = pluginService ? pluginService.loadPluginData(pluginId, "layouts", "") : "";
+        requestedLayouts = layouts;
         keymapProcess.command = ["python3", decodeURIComponent(Qt.resolvedUrl("xkb_layouts.py").toString().replace(/^file:\/\//, "")), "--layouts", layouts];
         keymapProcess.running = true;
     }
@@ -86,7 +53,7 @@ Item {
             layoutNames = data.layouts.map(function (layout) { return layout.name; });
             keymapSource = data.source;
             lastError = "";
-            refresh();
+            layoutsChanged();
         } catch (error) {
             // Keep the last usable index if a refresh fails.
             lastError = String(error.message || error);
@@ -104,43 +71,36 @@ Item {
             if (!root.receivedPayload && exitCode !== 0)
                 root.lastError = "The XKB helper could not start; check Python 3 and libxkbcommon";
             if (root.pendingReload) {
-                root.pendingReload = false;
-                Qt.callLater(root.reloadLayouts);
+                Qt.callLater(function () {
+                    root.pendingReload = false;
+                    root.reloadLayouts();
+                });
             }
         }
     }
 
     Connections {
-        target: AppSearchService
-        function onApplicationsChanged() { root.refresh(); }
-    }
-
-    Connections {
-        target: SessionData
-        function onAppOverridesChanged() { root.refresh(); }
-    }
-
-    Connections {
         target: root.pluginService
         function onPluginDataChanged(changedPluginId) {
-            if (changedPluginId === root.pluginId)
+            if (root.initialized && changedPluginId === root.pluginId && root.pluginService.loadPluginData(root.pluginId, "layouts", "") !== root.requestedLayouts)
                 root.reloadLayouts();
         }
     }
 
-    Component.onCompleted: reloadLayouts()
-    Component.onDestruction: {
-        stopping = true;
-        AppSearchService.applications = AppSearchService.applications.map(originalApp);
-        if (typeof AppSearchService.invalidateLauncherCache === "function")
-            invalidate();
+    Component.onCompleted: {
+        if (pluginService && pluginService.loadPluginData(pluginId, "noTrigger", null) === null)
+            pluginService.savePluginData(pluginId, "noTrigger", true);
+        initialized = true;
+        reloadLayouts();
     }
+    Component.onDestruction: stopping = true
 
     IpcHandler {
         target: "keyboard-layout-search"
 
         function status(): string {
-            return JSON.stringify({ indexedApps: root.indexedApps, layouts: root.layoutNames, source: root.keymapSource, loading: root.loading, error: root.lastError });
+            const launcher = root.pluginService?.pluginInstances?.[root.pluginId];
+            return JSON.stringify({ mode: "launcher", layouts: root.layoutNames, source: root.keymapSource, loading: root.loading, searching: launcher?.loading || false, error: root.lastError });
         }
 
         function refresh(): string {
@@ -149,9 +109,12 @@ Item {
         }
 
         function search(query: string): string {
-            return JSON.stringify(AppSearchService.searchApplications(query).map(function (app) {
-                return { id: app.id, name: app.name, keywords: app.keywords };
-            }));
+            const launcher = root.pluginService ? root.pluginService.ensureLauncherInstance(root.pluginId) : null;
+            return JSON.stringify(launcher ? launcher.getItems(query).map(item => ({ id: item.id, name: item.name, source: item.payload.sourceId, score: item.payload.score })) : []);
+        }
+
+        function variants(query: string): string {
+            return JSON.stringify(root.queryVariants(query));
         }
     }
 }

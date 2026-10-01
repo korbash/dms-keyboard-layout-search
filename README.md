@@ -1,28 +1,65 @@
 # DMS Keyboard Layout Search
 
-Find apps in [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell)
-without switching keyboard layouts first. For example, typing `ашкуащч` on a
-Russian layout finds **Firefox**, and typing `ucp.urq` on Dvorak finds it too.
+Search with the same physical keys in different keyboard layouts. With US and
+Russian layouts, `set` and `ыуе` search the same local candidates, with equal
+weight and deterministic ordering. `ашкуащч` finds Firefox without changing the
+keyboard layout first.
 
-![Firefox found from a Russian-layout query](assets/keyboard-layout-search.png)
+Version 1.1 is an ordinary DMS **composite plugin**: a daemon reads the keyboard
+map, and a launcher component implements `getItems()` / `executeItem()`. It does
+not patch DMS, replace its launcher, change application metadata or install
+systemd overrides. Search and ranking run in QML/JavaScript. A small Python
+helper reads XKB at startup or when layouts are reloaded; it is not persistent.
 
-The plugin adds hidden keywords to DMS's existing application index. It works
-in the application launcher and Niri overview, with no trigger prefix. Normal
-search, original app names, launch commands, hidden-app filtering and usage
-history stay in use.
+## What appears in the launcher
 
-**Source and releases:** [GitHub](https://github.com/korbash/dms-keyboard-layout-search) ·
-[Releases](https://github.com/korbash/dms-keyboard-layout-search/releases).
-The DMS registry submission is pending review; local installation is available below.
+One group, **DMS Keyboard Layout Search**, contains the combined results:
 
-## Layouts
+1. Applications, application actions (such as Steam Settings), and DMS core apps.
+2. Settings and other visible sources according to DMS's group priorities and
+   the user's configured launcher order.
+3. Web-search and QR actions at their respective source positions.
 
-By default, the plugin reads the **actual Wayland keymap** using `xkbcli`. It
-includes each configured layout plus a US reference map. This preserves the
-session's layout variants and custom key positions instead of guessing from a
-language code. It reads a keymap snapshot, not keyboard events.
+Within a source, the strongest match across layout variants wins. Results are
+identified by source and item identity, so two queries do not produce duplicate
+rows or double a result's score. App history is counted once. Settings and
+external providers retain their source ranking, merged deterministically.
 
-Alternatively, open the plugin's settings and enter XKB codes such as:
+No trigger prefix or layout label is required. Names and subtitles remain the
+original ones. DMS itself labels launcher-provider rows as `Plugin` in All mode.
+
+**DMS API boundaries:**
+
+- This is a separate plugin group. Native Applications/Settings remain present;
+  the plugin cannot insert into them or suppress their duplicates.
+- DMS shows only the first **10** results of each provider in All mode. Select
+  this plugin in the launcher to browse its full returned list (subject to
+  DMS's plugin-view limit).
+- External plugins receive the **literal query once**. Calling arbitrary
+  stateful providers twice can overwrite their own pending search. Their
+  returned actions are delegated back to the original provider.
+- QR generation also receives the literal text, once.
+- Match highlighting uses DMS's original query. The current plugin API cannot
+  highlight letters matched through a converted layout query.
+- Clipboard and files use independent async read requests for each variant;
+  old replies are ignored. File search runs only when DMS has enabled files or
+  folders in All mode and `dsearch` is available. Clipboard activation copies
+  the original entry, not its shortened preview.
+- Only sources allowed without a trigger are aggregated. Disabled/hidden
+  sources are respected; the plugin excludes itself to avoid recursion.
+
+The launcher contract is the normal plugin API. Reading apps/settings and
+invoking DMS's service helpers still depends on the QML service interfaces of
+the installed DMS version. No private service properties are assigned.
+
+## Keyboard layouts
+
+By default, the helper reads the actual Wayland keymap with
+`xkbcli dump-keymap-wayland`. It includes the configured layouts plus a US
+reference. This preserves layout variants and custom physical key positions.
+It reads a keymap snapshot, not keyboard events.
+
+Alternatively, enter XKB codes in the plugin settings:
 
 ```text
 us,ru
@@ -31,38 +68,25 @@ us,gr,ara,il
 us(dvorak),us(colemak),tr
 ```
 
-Any layout or variant available to your system's XKB database can be selected;
-there is no fixed language list in the plugin. Up to eight layouts can be
-configured at once, plus the US reference. Manual mode uses the standard
-`evdev` rules and `pc105` model; use automatic mode to reflect a custom keymap.
+Up to eight layouts can be selected, plus the US reference. Manual mode uses
+`evdev` rules and `pc105`. Reload layouts after changing the compositor keymap.
+A failed reload retains the last valid mappings.
 
-Reload the layouts from the settings button after changing your compositor's
-keymap. A plugin restart also takes a new snapshot. Newly installed apps and
-custom app names are reindexed automatically. There is no polling and no
-persistent helper process; Python runs briefly when loading layouts.
+Conversion follows physical key positions, not translation. Base and Shift
+levels are supported. AltGr, Compose/dead-key sequences and IME composition
+are outside scope. Duplicate character positions and mixed-layout text can be
+ambiguous; exact symmetry is verified for ordinary US/Russian letter queries.
 
-## Requirements
+## Requirements and installation
 
-- DMS **1.6.2 or newer**; runtime tested on 1.6.2 with Niri on EndeavourOS
-  (Arch-based).
-- Python **3.9+**, `libxkbcommon`, and an XKB data package (`xkeyboard-config`
-  or `xkb-data`). The helper uses Python's standard library; no pip packages.
-- `xkbcli dump-keymap-wayland` for automatic detection. Manual layout selection
-  also works when this subcommand is unavailable.
+- DMS 1.6.2 or newer, with the launcher service interfaces used here.
+- Python 3.9+, `libxkbcommon`, and an XKB data package such as
+  `xkeyboard-config` / `xkb-data`.
+- `xkbcli dump-keymap-wayland` for automatic detection; manual selection works
+  without it.
+- Optional: DMS clipboard backend and `dsearch`, for those enabled sources.
 
-On Arch, the relevant packages are `python`, `libxkbcommon`, and
-`xkeyboard-config`. Debian/Ubuntu package names include `python3`,
-`libxkbcommon0`, `libxkbcommon-tools`, and `xkb-data`; these are package-name
-equivalents, not a claim of runtime testing on Debian/Ubuntu. The initial
-registry entry declares the tested Arch family.
-
-The index integration is compositor-independent. Only **Niri has been tested
-in a live desktop session**; other Wayland compositors should be verified
-before claiming runtime support. Manual mode needs no compositor IPC.
-
-## Local installation
-
-From this repository's directory:
+From the repository directory, create the link if it does not already exist:
 
 ```sh
 mkdir -p ~/.config/DankMaterialShell/plugins
@@ -70,68 +94,42 @@ ln -s "$PWD/plugin" ~/.config/DankMaterialShell/plugins/keyboardLayoutSearch
 dms ipc call plugin-scan scan
 ```
 
-If the destination already exists, check it and move the old installation
-aside first. Enable **DMS Keyboard Layout Search** in DMS Settings → Plugins.
-The status text in its settings shows the loaded layouts or an actionable
-error. No bar widget needs to be added.
+Enable **DMS Keyboard Layout Search** in DMS Settings → Plugins. On first load
+it enables its own no-trigger setting. Its position among launcher plugins can
+be adjusted in the launcher's plugin-order settings. Move it above Web Search
+there if desired; ordering inside this plugin does not move its outer group.
 
-Disable the plugin in the same panel to restore the original application
-metadata, or run:
+When upgrading from 1.0, restart DMS once to refresh the composite manifest and
+QML's cached JavaScript. Version 1.0's hidden application keywords are no longer
+used; wrong-layout results now appear in the plugin's own group.
 
-```sh
-dms ipc call plugins disable keyboardLayoutSearch
-```
+Disabling the plugin removes its provider and stops its helper jobs. There is
+no application index to restore in 1.1.
 
-## Boundaries
+## Diagnostics
 
-- Conversion follows **physical key positions**, not pronunciation or
-  translation. It covers direct text on XKB's base and Shift levels.
-- AltGr/level-three combinations, Compose sequences, dead-key sequences and
-  IME composition/conversion (for example Chinese input or Japanese kana-to-
-  kanji conversion) are outside its scope. Direct Unicode symbols in a keymap
-  are supported, including keys that emit multiple codepoints.
-- Search uses additional keywords. Ranking and typo tolerance can differ from
-  a direct app-name match. Reconstructing ambiguous duplicate character
-  positions is approximate; unshifted positions are preferred.
-- App names, generic names, IDs and existing keywords are indexed. Files,
-  clipboard content, web searches, application actions and DMS built-in
-  commands are not extended.
-- Automatic mode reads the seat/keymap returned by `xkbcli`; it does not merge
-  multiple seats or independent per-device maps.
-- The plugin currently uses internal `AppSearchService` properties. Future DMS
-  changes may require an update. A failed keymap refresh retains the last
-  working index and displays the error.
-
-See [compatibility and verification](docs/compatibility.md) for actual test
-coverage rather than a claim that every input method works.
-
-## Development
-
-```sh
-make test            # Python, Node and manifest checks
-make test-component  # Offscreen Quickshell lifecycle checks with isolated stubs
-make test-live       # Read-only smoke test against this machine's running DMS
-make coverage        # Compile all installed XKB layouts and variants
-make reload          # Validate, hot reload this linked plugin, wait for its index
-make package         # Validate and create a local source archive in dist/
-```
-
-Development requires Node.js, Make, and Quickshell for component tests. The
-live smoke test expects Firefox, Telegram, Zed and Files to be installed.
-QML hot reload can retain imported JavaScript in Qt's cache: after changing
-`LayoutMaps.js`, restart DMS once before relying on live test results.
+Development scripts and test fixtures are not included in the published tree.
+Release verification is recorded in the compatibility notes. After editing
+imported JavaScript, QML may require a DMS restart to discard its old module cache.
 
 Diagnostics:
 
 ```sh
 dms ipc call keyboard-layout-search status
+dms ipc call keyboard-layout-search variants 'ыуе'
+dms ipc call keyboard-layout-search search 'ыуе'
 dms ipc call keyboard-layout-search refresh
-dms ipc call keyboard-layout-search search 'ашкуащч'
 ```
 
-`plugin/` is the installable plugin; `tests/` and `scripts/` contain validation
-and local packaging tools. [Publication steps](docs/releasing.md) and the
-prepared [registry entry](packaging/registry/korbash-dms-keyboard-layout-search.json)
-are included. Nothing in `make package` publishes, uploads or changes a remote.
+`search` reports this plugin's results, not the native Applications group. Its
+first call may return partial results while settings load or async sources
+complete; status reports `searching` while this plugin has pending requests.
+
+See [compatibility and verification](docs/compatibility.md) for coverage and
+[publication steps](docs/releasing.md) for release work. The prior core-patch
+experiment is not part of the installable plugin or package.
+
+[Source](https://github.com/korbash/dms-keyboard-layout-search) ·
+[Releases](https://github.com/korbash/dms-keyboard-layout-search/releases)
 
 MIT license, © 2026 korbash.

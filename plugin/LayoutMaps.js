@@ -53,30 +53,12 @@ function convert(text, mapping) {
     return normalize(output.join(""));
 }
 
-function keywordsFor(app, displayName, mappings) {
-    const keywords = Array.from(app.keywords || []);
-    const seen = new Set(keywords.map(normalize));
-    const sources = new Set([displayName || "", app.name || "", app.genericName || "", app.id || ""].concat(keywords).map(normalize));
-
-    function add(word) {
-        if (!word || seen.has(word))
-            return;
-        seen.add(word);
-        keywords.push(word);
-    }
-
-    for (const source of sources) {
-        if (!source)
-            continue;
-        for (const mapping of mappings) {
-            const alias = convert(source, mapping);
-            if (alias === source)
-                continue;
-            add(alias);
-            // DMS matches keyword prefixes; also index each word in multiword names.
-            for (const word of alias.split(/[\s\-_]+/))
-                add(word);
-        }
-    }
-    return keywords;
+function queryVariants(text, mappings) {
+    const query = normalize(text || "").trim();
+    if (!query)
+        return [];
+    const variants = new Set([query]);
+    for (const mapping of mappings)
+        variants.add(convert(query, mapping));
+    return Array.from(variants).sort();
 }

@@ -9,6 +9,13 @@ PluginSettings {
     pluginId: "keyboardLayoutSearch"
     readonly property var instance: PluginService.pluginDaemonInstances[pluginId] || null
 
+    StyledText {
+        width: parent.width
+        wrapMode: Text.WordWrap
+        color: Theme.surfaceVariantText
+        text: I18n.trFor("keyboardLayoutSearch", "Results appear in this plugin's own group. Apps come first, then settings and other sources in your launcher order. All mode shows up to 10 results; select this plugin to see its full list.")
+    }
+
     StringSetting {
         settingKey: "layouts"
         label: I18n.trFor("keyboardLayoutSearch", "Keyboard layouts")

@@ -1,18 +1,18 @@
-This plugin lets users find installed apps after typing with another keyboard
-layout. It extends the existing DMS app index with physical-key aliases from
-the actual Wayland XKB keymap, or from explicitly selected XKB layouts/variants.
-No launcher trigger prefix is required.
+DMS Keyboard Layout Search 1.1.0 replaces app-index mutation with a composite
+daemon/launcher plugin. Update the existing registry entry's capabilities and
+description to match the published manifest; retain the other accepted metadata.
 
-Category: `utilities`; capability: `daemon`. The plugin runs in the background
-and augments the built-in search; it has no separate launcher trigger or widget.
-The installable files live in `plugin/`. Dependencies are Python 3, libxkbcommon,
-xkeyboard-config and xkbcli (for automatic Wayland keymap detection).
+The plugin searches applications and settings across keyboard layouts with
+equal weighting and combines results in its own launcher group, ordered by
+DMS source priority. It also includes enabled file/clipboard sources and passes
+literal queries to other visible providers. It requires no trigger prefix or
+DMS source patch. All mode retains DMS's 10-result cap per plugin.
 
-Runtime checked with DMS 1.6.2 and Niri on EndeavourOS (Arch-based).
-Automated checks cover 13 layout/variant examples, metadata preservation, reindexing, failed refreshes and disabling.
-The extraction helper also read 597 installed XKB layouts/variants. Compose,
-dead-key sequences, AltGr and IME conversion are not supported; ranking uses
-the launcher's normal keyword scoring. Other compositors have not been live tested.
+Validation: six Python tests, 24 JavaScript tests, real offscreen QML lifecycle
+checks, live US/Russian searches on Niri/EndeavourOS, and extraction of 597 XKB
+layouts/variants. Other desktops have not been live tested. The repository's
+compatibility notes document the QML service dependencies and API limits.
+Development scripts and test fixtures are excluded from the published tree.
 
-The code was developed with substantial AI assistance. Test scope and
-limitations are documented in the repository.
+The implementation and this submission were prepared with substantial AI
+assistance. The checks and installed DMS interfaces were reviewed and exercised.

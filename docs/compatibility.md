@@ -1,66 +1,59 @@
 # Compatibility and verification
 
-Tested locally on 26 September 2026 with DMS 1.6.2, Quickshell 0.3.1,
-libxkbcommon 1.13.2 and xkeyboard-config 2.48, on Niri and EndeavourOS
-(Arch-based). The initial registry entry lists `niri` and the `arch` family;
-other compositor/distribution combinations have not been verified.
+The 1.1 launcher implementation was tested on 1 October 2026 against the
+running DMS UI revision `a954553ffdceaf27`, with Niri on EndeavourOS. The shell
+runs from its original embedded UI; no DMS source patch or service override
+is required. Other compositor/distribution combinations have not been tested.
 
-## XKB database coverage
+## Coverage
 
-The extraction helper compiled and read **597 installed layouts/variants**.
-The registry also contains `custom`, a placeholder requiring a user-provided
-symbols file; it is unconfigured on the test machine. No other compilation
-failed. This checks keymap extraction, not end-to-end search in every language.
-A separate test verifies a custom keymap with a remapped physical key.
+The following checks passed before the 1.1.0 release. Development scripts and
+test fixtures are kept outside the published source tree.
 
-Run `make coverage` to reproduce the extraction check against your own XKB
-version. The number of available entries depends on that package version.
+- Python tests validate XKB extraction, invalid layouts, automatic detection
+  and custom physical key positions.
+- JavaScript tests check independently specified strings for 13 XKB layouts,
+  US/Russian query symmetry, Unicode normalization and multi-codepoint keys.
+- Search tests execute the real launcher methods against service fixtures:
+  equal local results, best-score merging, native source priority rules,
+  user ordering, provider visibility, literal web/QR queries, action routing,
+  recursion guards, async file/clipboard deduplication and obsolete replies.
+- Offscreen Quickshell loads the real daemon, launcher and XKB helper. It
+  verifies that application metadata remains untouched, override names are
+  read dynamically, layout changes replace mappings, and failed refreshes
+  retain working maps. It also exercises rapid consecutive settings changes
+  and destruction of both surfaces.
+- Live checks query Firefox, Telegram, Zed and Files using US/Russian names
+  and prefixes. `set` and `ыуе` are compared by ID, score and order for the
+  applications and settings returned by the plugin.
 
-## Behavioral tests
+The release XKB extraction coverage run (1 October 2026) compiled and read
+597 installed layouts/variants with libxkbcommon 1.13.2 and xkeyboard-config
+2.48. Only the unconfigured `custom` placeholder was excluded. This checks
+keymap extraction, not end-to-end search in every writing system.
 
-Independent expected strings check that application aliases are present for:
+## API boundaries
 
-| Layout | App | Query from that layout |
-| --- | --- | --- |
-| Russian | Firefox | ашкуащч |
-| Ukrainian | Firefox | ашкуащч |
-| Greek | Firefox | φιρεφοχ |
-| German | Yazi | zayi |
-| French | Yazi | yqwi |
-| Turkish | Firefox | fırefox |
-| Arabic | Firefox | بهقثبخء |
-| Hebrew | Firefox | כןרקכםס |
-| Persian | Firefox | بهقثبخط |
-| Thai | Firefox | ดรพำดนป |
-| Indian default XKB layout | Firefox | िगीािदं |
-| English Dvorak | Firefox | ucp.urq |
-| English Colemak | Firefox | tupftyx |
+The plugin uses DMS's ordinary launcher/composite contracts. App discovery,
+settings lookup and execution use existing QML service methods; their names
+and behavior can change across DMS versions. It never assigns private caches,
+application metadata, global launcher queries or shell functions.
 
-Additional cases cover reverse conversion, uppercase app names, shifted
-punctuation, Unicode normalization, multi-codepoint outputs, unknown characters,
-missing metadata, multiword names, existing keywords, overrides and deduplication.
+DMS owns the outer plugin section, native row badges and the 10-result cap
+in All mode. Category metadata cannot move plugin rows into native sections.
+The aggregation order inside the plugin follows the section-priority rules
+of the tested DMS revision and `SettingsData.launcherPluginOrder`.
 
-The isolated Quickshell component test runs the real plugin and Python helper
-with several layouts. It verifies launch metadata preservation, reindexing,
-new applications, renamed applications, a failed refresh, rapid setting changes,
-and restoration on disable. It uses lightweight service stubs and does not
-change the desktop's keyboard settings.
+Arbitrary third-party sources are queried once with literal text. Their own
+layout support is not extended. Clipboard and file reads are independent
+requests owned by this plugin; no shared query cache is rewritten. Only
+currently enabled and visible sources are queried.
 
-The live Niri test checks Russian queries and prefixes against the running DMS
-application service and the installed launcher's scoring code. The screenshot
-shows an actual matching result from the desktop launcher. The settings component
-was also instantiated against the live DMS service and reported the detected
-US/Russian layouts without QML errors.
+Custom app names and hidden-app preferences are respected through DMS's
+visible-application accessor. Native app actions and original launch payloads
+are preserved. Clipboard activation copies the complete stored entry; the
+UI preview is only a display label.
 
-A further live check temporarily supplied each of the 13 sample XKB maps to
-the running plugin and queried the real DMS application service. Each expected
-query found the original application ID (Firefox, or Zed for German/French).
-The automatic US/Russian snapshot was restored afterward. This exercises the
-search index without changing the desktop keyboard configuration; it does not
-simulate typing through each language's input method.
-
-## Scope
-
-Direct characters on base/Shift XKB levels are supported. No claim is made for
-IME composition, Compose/dead-key sequences, AltGr levels or every compositor.
-See the README for the full boundaries and runtime requirements.
+Base/Shift characters are supported. IME, Compose, dead-key and AltGr input
+remain outside scope. Maps with ambiguous duplicate character positions can
+produce approximate alternatives.
